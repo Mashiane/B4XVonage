@@ -1,0 +1,275 @@
+﻿AppType=JavaFX
+Build1=Default,b4j.example
+File1=Layout1.bjl
+FileGroup1=Default Group
+Group=Default Group
+Library1=jcore
+Library2=jfx
+Library3=jokhttputils2
+Library4=jxui
+Library5=json
+NumberOfFiles=1
+NumberOfLibraries=5
+NumberOfModules=0
+Version=8.9
+@EndOfDesignText@
+#Region Project Attributes 
+	#MainFormWidth: 600
+	#MainFormHeight: 600 
+#End Region
+
+Sub Process_Globals
+	Private fx As JFX
+	Private MainForm As Form
+	Private xui As XUI 
+	Private txtFrom As TextField
+	Private txtText As TextField
+	Private txtTo As TextField
+	Private txtAPISecret As TextField
+	Private txtAPI As TextField
+	Private btnSendMessage As Button
+	'
+	Private apiKey As String = "XXXXX" 
+	Private apiSecret As String = "XXXXX"
+	Private btnSendWhatsApp As Button
+	Private btnSendSMS As Button
+	Private btnSendMMS As Button
+End Sub
+
+Sub AppStart (Form1 As Form, Args() As String)
+	MainForm = Form1
+	MainForm.RootPane.LoadLayout("Layout1")
+	MainForm.Show
+	txtFrom.Text = "14157386170"
+	txtAPI.Text = apiKey
+	txtAPISecret.Text = apiSecret
+	txtText.Text = "Vonage API Test Message!"
+	txtTo.Text = "123456"
+End Sub
+
+'send whatsapp
+Private Sub btnSendMessage_Click
+	Dim msgObj As Map = CreateMap()
+	Dim fromObj As Map = CreateMap()
+	fromObj.Put("type", "whatsapp")
+	fromObj.Put("number", txtFrom.text)
+	msgObj.Put("from", fromObj)
+	'
+	Dim toObj As Map = CreateMap()
+	toObj.Put("type", "whatsapp")
+	toObj.Put("number", txtTo.text)
+	msgObj.Put("to", toObj)
+	'
+	Dim msg As Map = CreateMap()
+	Dim content As Map = CreateMap()
+	content.Put("type", "text")
+	content.Put("text", txtText.Text)
+	'
+	msg.Put("content", content)
+	msgObj.put("message", msg)
+	'
+	Dim msgJSON As String = Map2Json(msgObj)
+	'
+	Dim msgURL As String = $"https://messages-sandbox.nexmo.com/v0.1/messages"$
+    '
+	Dim job As HttpJob
+	job.Initialize("sendmessage", Me)
+	'
+	Dim sAuthorization As String = $"${apiKey}:${apiSecret}"$
+	Dim su As StringUtils
+	Dim authInfo As String = su.EncodeBase64(sAuthorization.GetBytes("UTF8"))
+	
+	job.PostString(msgURL, msgJSON)
+	job.GetRequest.SetHeader("Authorization", $"Basic ${authInfo}"$)
+	job.GetRequest.SetContentType("application/json")
+	job.GetRequest.SetHeader("Accept", "application/json")
+	Wait for JobDone (job As HttpJob)
+	Log("Success = " & job.Success)
+    If job.Success = True Then
+        Dim msgout As Map = Json2Map(job.GetString)
+		Dim smessage_uuid As String = msgout.GetDefault("message_uuid", "")
+		Log("WhatApp Msg ID:" & smessage_uuid)
+    End If
+    job.Release
+End Sub
+
+'send message
+Private Sub btnSendWhatsApp_Click
+	Dim msgObj As Map = CreateMap()
+	Dim fromObj As Map = CreateMap()
+	fromObj.Put("type", "whatsapp")
+	fromObj.Put("number", txtFrom.text)
+	msgObj.Put("from", fromObj)
+	'
+	Dim toObj As Map = CreateMap()
+	toObj.Put("type", "whatsapp")
+	toObj.Put("number", txtTo.text)
+	msgObj.Put("to", toObj)
+	'
+	Dim msg As Map = CreateMap()
+	Dim content As Map = CreateMap()
+	content.Put("type", "image")
+	Dim image As Map = CreateMap()
+	image.Put("url", "https://github.com/Mashiane/BANanoVuetifyAD3/blob/main/Tutorials/Part01/Files/sponge.png")
+	image.Put("caption", "Exploring Vonage by Mashy")
+	content.Put("image", image)
+	'
+	msg.Put("content", content)
+	msgObj.put("message", msg)
+	'
+	Dim msgJSON As String = Map2Json(msgObj)
+	'
+	Dim msgURL As String = $"https://messages-sandbox.nexmo.com/v0.1/messages"$
+    '
+	Dim job As HttpJob
+	job.Initialize("sendmessage", Me)
+	'
+	Dim sAuthorization As String = $"${apiKey}:${apiSecret}"$
+	Dim su As StringUtils
+	Dim authInfo As String = su.EncodeBase64(sAuthorization.GetBytes("UTF8"))
+	
+	job.PostString(msgURL, msgJSON)
+	job.GetRequest.SetHeader("Authorization", $"Basic ${authInfo}"$)
+	job.GetRequest.SetContentType("application/json")
+	job.GetRequest.SetHeader("Accept", "application/json")
+	Wait for JobDone (job As HttpJob)
+	Log("Success = " & job.Success)
+    If job.Success = True Then
+        Dim msgout As Map = Json2Map(job.GetString)
+		Dim smessage_uuid As String = msgout.GetDefault("message_uuid", "")
+		Log("WhatApp Msg ID:" & smessage_uuid)
+    End If
+    job.Release
+End Sub
+
+
+Sub Json2Map(strJSON As String) As Map
+	Dim jsonx As JSONParser
+	Dim Map1 As Map
+	Map1.Initialize
+	Map1.clear
+	Try
+		If strJSON.length > 0 Then
+			jsonx.Initialize(strJSON)
+			Map1 = jsonx.NextObject
+		End If
+		Return Map1
+	Catch
+		Return Map1
+	End Try
+End Sub
+
+Sub Map2Json(mp As Map) As String
+	Dim jsonx As JSONGenerator
+	jsonx.Initialize(mp)
+	Return jsonx.ToString
+End Sub
+
+Private Sub btnSendSMS_Click
+	Dim msgObj As Map = CreateMap()
+ 	msgObj.Put("from", txtFrom.Text)
+	msgObj.Put("text", txtText.Text)
+  	msgObj.Put("to", txtTo.Text)
+  	msgObj.Put("api_key", apiKey)
+	msgObj.Put("api_secret", apiSecret)
+	'
+	Dim qs As String = Map2QueryString(msgObj)
+	Dim msgURL As String = $"https://rest.nexmo.com/sms/json"$
+    '
+	Dim job As HttpJob
+	job.Initialize("sendsms", Me)
+	job.PostString(msgURL, qs)
+	Wait for JobDone (job As HttpJob)
+	Log("Success = " & job.Success)
+    If job.Success = True Then
+		Dim resp As Map = Json2Map(job.GetString)
+		Dim messages As List = resp.Get("messages")
+		Log(messages)
+    End If
+    job.Release
+End Sub
+
+Sub Map2QueryString(m As Map) As String
+	Dim sb As StringBuilder
+	sb.Initialize 
+	For Each k As String In m.Keys
+		Dim v As String = m.Get(k)
+		sb.Append($"${k}=${v}&"$)
+	Next
+	Dim sout As String = RemDelimSB("&", sb)
+	Return sout
+End Sub
+
+'remove a delimiter from a string
+Sub RemDelimSB(delimiter As String, value As StringBuilder) As StringBuilder
+	If value.tostring.EndsWith(delimiter) = True Then
+		Dim delimLen As Int = delimiter.length
+		value.Remove(value.Length-delimLen,value.Length)
+	End If
+	Return value
+End Sub
+
+Private Sub btnSendMMS_Click
+	Dim msgObj As Map = CreateMap()
+	Dim fromObj As Map = CreateMap()
+	fromObj.Put("type", "mms")
+	fromObj.Put("number", txtFrom.text)
+	msgObj.Put("from", fromObj)
+	'
+	Dim toObj As Map = CreateMap()
+	toObj.Put("type", "mms")
+	toObj.Put("number", txtTo.text)
+	msgObj.Put("to", toObj)
+	'
+	Dim msg As Map = CreateMap()
+	Dim content As Map = CreateMap()
+	content.Put("type", "image")
+	Dim image As Map = CreateMap()
+	image.Put("url", "https://github.com/Mashiane/BANanoVuetifyAD3/blob/main/Tutorials/Part01/Files/sponge.png")
+	image.Put("caption", "Exploring Vonage by Mashy")
+	content.Put("image", image)
+	'
+	msg.Put("content", content)
+	msgObj.put("message", msg)
+	'
+	Dim msgJSON As String = Map2Json(msgObj)
+	'
+	Dim msgURL As String = $"https://messages-sandbox.nexmo.com/v0.1/messages"$
+    '
+	Dim job As HttpJob
+	job.Initialize("sendmessage", Me)
+	'
+	Dim sAuthorization As String = $"${apiKey}:${apiSecret}"$
+	Dim su As StringUtils
+	Dim authInfo As String = su.EncodeBase64(sAuthorization.GetBytes("UTF8"))
+	
+	job.PostString(msgURL, msgJSON)
+	job.GetRequest.SetHeader("Authorization", $"Basic ${authInfo}"$)
+	job.GetRequest.SetContentType("application/json")
+	job.GetRequest.SetHeader("Accept", "application/json")
+	Wait for JobDone (job As HttpJob)
+	Log("Success = " & job.Success)
+    If job.Success = True Then
+        Dim msgout As Map = Json2Map(job.GetString)
+		Dim smessage_uuid As String = msgout.GetDefault("message_uuid", "")
+		Log("WhatApp Msg ID:" & smessage_uuid)
+    End If
+    job.Release
+End Sub
+
+' convert a json string to a list
+Sub Json2List(strValue As String) As List
+	Dim lst As List
+	lst.Initialize
+	lst.clear
+	If strValue.Length = 0 Then
+		Return lst
+	End If
+	Try
+		Dim parser As JSONParser
+		parser.Initialize(strValue)
+		Return parser.NextArray
+	Catch
+		Return lst
+	End Try
+End Sub
